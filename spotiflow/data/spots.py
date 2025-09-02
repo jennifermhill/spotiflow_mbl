@@ -90,23 +90,23 @@ class SpotsDataset(Dataset):
         self._augmenter = (
             augmenter if augmenter is not None else lambda img, pts: (img, pts)
         )
-        if augmenter is not None and isinstance(augmenter, AugmentationPipeline):
-            _crop_cls = self._get_crop_class()
-            assert any(
-                isinstance(p, _crop_cls) for p in augmenter.augmentations
-            ), "Custom augmenter must contain a cropping transform!"
-            _cropper = tuple(
-                p for p in augmenter.augmentations if isinstance(p, _crop_cls)
-            )[0]
-            crop_size = _cropper.size
-            _n_dims = self._get_n_dimensions()
-            if any(np.any(np.asarray(img.shape)[:_n_dims] < np.asarray(crop_size)) for img in self._images):
-                log.warning(f"Some images are smaller than the crop size ({crop_size}). Will center pad with zeros.")
-                for i, img in enumerate(self._images):
-                    if np.any(np.asarray(img.shape)[:_n_dims] < np.asarray(crop_size)):
-                        _padded_img, _padding = utils.center_pad(img, crop_size, mode="constant", allow_larger=True)
-                        self._images[i] = _padded_img
-                        self._centers[i][:, :len(_padding)] += np.array([p[0] for p in _padding])
+        # if augmenter is not None and isinstance(augmenter, AugmentationPipeline):
+        #     _crop_cls = self._get_crop_class()
+        #     assert any(
+        #         isinstance(p, _crop_cls) for p in augmenter.augmentations
+        #     ), "Custom augmenter must contain a cropping transform!"
+        #     _cropper = tuple(
+        #         p for p in augmenter.augmentations if isinstance(p, _crop_cls)
+        #     )[0]
+        #     crop_size = _cropper.size
+        #     _n_dims = self._get_n_dimensions()
+        #     if any(np.any(np.asarray(img.shape)[:_n_dims] < np.asarray(crop_size)) for img in self._images):
+        #         log.warning(f"Some images are smaller than the crop size ({crop_size}). Will center pad with zeros.")
+        #         for i, img in enumerate(self._images):
+        #             if np.any(np.asarray(img.shape)[:_n_dims] < np.asarray(crop_size)):
+        #                 _padded_img, _padding = utils.center_pad(img, crop_size, mode="constant", allow_larger=True)
+        #                 self._images[i] = _padded_img
+        #                 self._centers[i][:, :len(_padding)] += np.array([p[0] for p in _padding])
 
         self._image_files = image_files
         self._n_classes = 1
