@@ -40,7 +40,7 @@ class Crop3D(BaseAugmentation):
         img_c = img[..., cz:cz+self.size[0], cy:cy+self.size[1], cx:cx+self.size[2]]
 
         # Crop points
-        pts_c = pts - torch.FloatTensor([cz, cy, cx])
+        pts_c = torch.FloatTensor(pts) - torch.FloatTensor([cz, cy, cx])
         idxs_in = _filter_points_idx(pts_c, self.size)
         return img_c, pts_c[idxs_in].view(*pts.shape[:-2], -1, pts.shape[-1])
 
