@@ -61,7 +61,13 @@ class Spots2DT(Spots3DDataset):
         centers = centers.numpy()
 
         if self._defer_normalization:
-            img = self._normalizer(img.compute())
+            if img.ndim == 3 or img.shape[0] == 1:
+                img = self._normalizer(img.compute())
+            elif img.shape[0] == 3:
+                img = img.compute()
+                img[0] = self._normalizer(img[0])
+                img[1] = img[1] / (img[1].max()+1e-8)
+                img[2] = img[2] / (img[2].max()+1e-8)
 
         # Add B (batch) dimension
         img = torch.from_numpy(img.copy()).unsqueeze(0)
@@ -69,16 +75,15 @@ class Spots2DT(Spots3DDataset):
 
         if img.ndim == 4:  # i.e. BDHW, then add C (channel) dimension to BDHW format
             img = img.unsqueeze(1)
-        elif img.ndim == 5:  # i.e. BDHWC, then turn BDWHC format into BCDHW
-            img = torch.moveaxis(img, -1, 1)
-        else:
+        # elif img.ndim == 5:  # i.e. BDHWC, then turn BDWHC format into BCDHW
+        #     img = torch.moveaxis(img, -1, 1)
+        elif img.ndim != 5:
             raise ValueError(
-                f"Image tensor must be 4D (BDHW) or 5D (BDHWC) for {self.__class__.__name__}, got {img.ndim}D."
+                f"Image tensor must be 4D (BDHW) or 5D (BCDHW) for {self.__class__.__name__}, got {img.ndim}D."
             )
 
         img, centers = self.augmenter(img, centers)  # augmenter expects BCDHW format
         img, centers = img.squeeze(0), centers.squeeze(0)  # Remove B (batch) dimension
-
         if self._compute_flow:
             flow = utils.points_to_flow3d(
                 centers.numpy(),
