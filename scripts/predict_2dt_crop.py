@@ -32,6 +32,7 @@ def decuplicate_annotations(annotations: list, n_duplicates: int = 10) -> list:
 
 def main(training_data_dir: str, 
          pred_dataset: int,
+         model_time: str,
          shift_forward: bool = False,
          decuplicate: bool = False):
     
@@ -86,7 +87,7 @@ def main(training_data_dir: str,
     print("Loading validation image...")
     idx = 0
     item = val_data[idx]
-    val_crop = item["img"][:, 0:45]
+    val_crop = item["img"][:, :]
     print(f"Image shape is: {val_crop.shape}")
     heatmap = item["heatmap_lv0"][:, 0:45].squeeze().numpy()
 
@@ -97,7 +98,7 @@ def main(training_data_dir: str,
 
     # load pre-trained model
     print("Loading model...")
-    model = Spotiflow.from_folder("/groups/sgro/sgrolab/jennifer/spotiflow_mbl/scripts/outputs/spotiflow-20250903_1715", map_location="cuda")
+    model = Spotiflow.from_folder("/groups/sgro/sgrolab/jennifer/spotiflow_mbl/scripts/outputs/spotiflow-" + model_time, map_location="cuda")
     model.to(torch.device("cuda"))
 
     #n_tiles = tuple(max(s//g, 1) for s, g in zip(val_imgs.shape, (16, 256, 256)))
@@ -134,6 +135,7 @@ if __name__ == "__main__":
     training_data_dir = "/groups/sgro/sgrolab/jennifer/predicty/training_data_server.json"
     main(training_data_dir, 
          pred_dataset=16,
+         model_time = "20250903_1715",
          shift_forward=True,
          decuplicate=True,
          )
