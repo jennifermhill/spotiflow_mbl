@@ -59,7 +59,8 @@ def main(training_data_dir: str,
             except Exception as e:
                 print(f"Skipping dataset {i}: {e}")
                 continue
-            img = img[:,[0,3,4],:,:].transpose(1,0,2,3)
+            img = img[:,[0,3],:,:].transpose(1,0,2,3)
+            print(f"Image shape: {img.shape}")
 
             imgs.append(img)
 
@@ -140,7 +141,7 @@ def main(training_data_dir: str,
     print("Instantiating new model...")
     model = Spotiflow(SpotiflowModelConfig(
         backbone="unet",
-        in_channels=3,
+        in_channels=2,
         out_channels=1,
         sigma=17,
         is_3d=True,
