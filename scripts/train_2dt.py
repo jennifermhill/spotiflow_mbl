@@ -51,7 +51,7 @@ def main(training_data_dir: str,
     for i, zarr_dataset in enumerate(training_data):
         if i in good_datasets:
             print(f"Processing dataset {i}...")
-            zarr_path = os.path.join(zarr_dataset, "../analysis_mbl/max_projections/maxz")
+            zarr_path = os.path.join(zarr_dataset, "../analysis/max_projections/maxz")
 
             # Process zarr
             try:
@@ -59,7 +59,7 @@ def main(training_data_dir: str,
             except Exception as e:
                 print(f"Skipping dataset {i}: {e}")
                 continue
-            img = img[:,[0,3],:,:].transpose(1,0,2,3)
+            img = img[:,0,0,:,:]
             print(f"Image shape: {img.shape}")
 
             imgs.append(img)
@@ -81,7 +81,7 @@ def main(training_data_dir: str,
             all_annotations.append(dataset_annotations)
     print(f"Total number of annotations across all datasets: {annotations_tot}")
 
-    cropper = Crop3D(size=(64, 256, 256), point_priority=1.0)
+    cropper = Crop3D(size=(32, 128, 128), point_priority=1.0)
 
     aug_pipeline = Pipeline()
     aug_pipeline.add(FlipRot90(probability=0.5))
@@ -116,8 +116,9 @@ def main(training_data_dir: str,
     )
     print(f"Validation data loaded (N={len(val_data.images)}).")
 
-    #Visualize a random crop
+    # Visualize a random crop
     # idx = np.random.randint(0, len(val_data))
+    # idx = 1
     # print(idx)
 
     # item = val_data[idx]
@@ -132,7 +133,7 @@ def main(training_data_dir: str,
     # #viewer.add_points(annotations[17], size=10, name="pts", symbol="disc", border_color="red", face_color="red")
     # viewer.add_image(img, name="img")
     # # viewer.add_points(spots, size=1, name="pts", symbol="disc", border_color="magenta", face_color="magenta")
-    # viewer.add_image(heatmap, name="heatmap")
+    # viewer.add_image(heatmap, name="heatmap", colormap="magma", opacity=0.6)
     # # viewer.add_image((details.flow+1)*0.5, name="flow")
     # napari.run()
 
