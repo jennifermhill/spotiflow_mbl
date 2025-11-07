@@ -51,7 +51,7 @@ def main(training_data_dir: str,
     for i, zarr_dataset in enumerate(training_data):
         if i in good_datasets:
             print(f"Processing dataset {i}...")
-            zarr_path = os.path.join(zarr_dataset, "analysis_mbl/max_projections/maxz")
+            zarr_path = os.path.join(zarr_dataset, "../analysis_mbl/max_projections/maxz")
 
             # Process zarr
             try:

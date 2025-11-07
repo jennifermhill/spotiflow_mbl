@@ -84,7 +84,7 @@ def main(
 
         # Load full dataset
         # zarr_path = os.path.join(zarr_dataset, "analysis_mbl/max_projections/maxz")
-        zarr_path = os.path.join(zarr_dataset_path, "analysis/max_projections/maxz")
+        zarr_path = os.path.join(zarr_dataset_path, "../analysis/max_projections/maxz")
 
         # Process zarr
         try:

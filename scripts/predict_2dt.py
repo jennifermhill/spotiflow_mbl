@@ -21,7 +21,7 @@ def main(training_data_dir: str, model_time: str, pred_datasets: list[int], shif
     annotations = []
     for i, zarr_dataset in enumerate(training_data):
         print(f"Processing dataset {i}...")
-        zarr_path = os.path.join(zarr_dataset, "analysis_mbl/max_projections/maxz")
+        zarr_path = os.path.join(zarr_dataset, "../analysis_mbl/max_projections/maxz")
         # zarr_path = os.path.join(zarr_dataset, "analysis/max_projections/maxz")
 
         # Process zarr

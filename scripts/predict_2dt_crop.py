@@ -45,7 +45,7 @@ def main(training_data_dir: str,
     annotations_tot = 0
     for i, zarr_dataset in enumerate(training_data):
         print(f"Processing dataset {i}...")
-        zarr_path = os.path.join(zarr_dataset, "analysis/max_projections/maxz")
+        zarr_path = os.path.join(zarr_dataset, "../analysis/max_projections/maxz")
 
         # Process zarr
         img = da.from_zarr(zarr_path)

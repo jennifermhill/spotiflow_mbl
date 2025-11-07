@@ -15,7 +15,7 @@ def main(
         ) -> None:
 
     # Load input image
-    zarr_path = os.path.join(zarr_dataset, "analysis/max_projections/maxz")
+    zarr_path = os.path.join(zarr_dataset, "../analysis/max_projections/maxz")
     img = da.from_zarr(zarr_path)
     img = img[:,1,0,:,:]
     # Downsample for testing
