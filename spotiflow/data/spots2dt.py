@@ -63,11 +63,11 @@ class Spots2DT(Spots3DDataset):
         if self._defer_normalization:
             if img.ndim == 3 or img.shape[0] == 1:
                 img = self._normalizer(img.compute())
-            elif img.shape[0] == 3:
+            elif img.shape[0] == 2:
                 img = img.compute()
                 img[0] = self._normalizer(img[0])
                 img[1] = img[1] / (img[1].max()+1e-8)
-                img[2] = img[2] / (img[2].max()+1e-8)
+                # img[2] = img[2] / (img[2].max()+1e-8)
 
         # Add B (batch) dimension
         img = torch.from_numpy(img.copy()).unsqueeze(0)
@@ -120,3 +120,20 @@ class Spots2DT(Spots3DDataset):
             }
         )
         return ret_obj
+    
+    def get_predict_item(self, dataset_id: int, annotation_id: int) -> np.ndarray:
+        """ Get item for prediction. Similar to __getitem__, but does not return centers, flow, or heatmaps.
+
+        Args:
+            index (int): Index dataset to predict on.
+            annotation (int): Index of annotation to use for cropping.
+        Returns
+            np.ndarray: Image array.
+        """
+        img, centers = self.images[dataset_id], self._centers[dataset_id]
+        annotation = centers[annotation_id]
+        t_predict = annotation[0]
+
+        img = img[:t_predict] # take all timepoints up to and including t_predict
+
+        return img
