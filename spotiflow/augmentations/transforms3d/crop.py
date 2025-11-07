@@ -55,9 +55,11 @@ class Crop3D(BaseAugmentation):
             width = self.size[0]//4, self.size[1]//4, self.size[2]//4
             # Remove points that are not anchor candidates
 
-            valid_pt_coords = pts[(pts[..., 0] >= self.size[0]//2-width[0]) & (pts[..., 0] < z-self.size[0]//2+width[0]) & (pts[..., 1] >= self.size[1]//2-width[1]) & (pts[..., 1] < y-self.size[1]//2+width[1]) & (pts[..., 2] >= self.size[2]//2-width[2]) & (pts[..., 2] < x-self.size[2]//2+width[2])]
+            # valid_pt_coords = pts[(pts[..., 0] >= self.size[0]//2-width[0]) & (pts[..., 0] < z-self.size[0]//2+width[0]) & (pts[..., 1] >= self.size[1]//2-width[1]) & (pts[..., 1] < y-self.size[1]//2+width[1]) & (pts[..., 2] >= self.size[2]//2-width[2]) & (pts[..., 2] < x-self.size[2]//2+width[2])]
+            valid_pt_coords = pts # Use all points as candidates
             if valid_pt_coords.shape[0] == 0:
                 # sample randomly if no points are valid
+                print("Warning: no valid points for crop center, sampling randomly.")
                 cz, cy, cx = torch.FloatTensor(1).uniform_(0, z-self.size[0]).item(), torch.FloatTensor(1).uniform_(0, y-self._size[1]).item(), torch.FloatTensor(1).uniform_(0, x-self._size[2]).item()
             else:
                 # select a point
