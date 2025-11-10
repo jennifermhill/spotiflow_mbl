@@ -53,12 +53,12 @@ def create_dataset(training_data: list, early_predict_frames: int):
     return all_imgs, all_annots
 
 
-def main(training_data_dir: str, early_predict_frames: int = 1):
+def main(data_dir: str, early_predict_frames: int = 1):
     
-    with open(training_data_dir, "r") as f:
-        training_data = json.load(f)
+    with open(data_dir, "r") as f:
+        data = json.load(f)
 
-    training_data_list = list(training_data.items())
+    data_list = list(data.items())
 
     cropper = Crop3D(size=(64, 256, 256), point_priority=1.0) # Always train/predict on crops containing spots
 
@@ -70,7 +70,7 @@ def main(training_data_dir: str, early_predict_frames: int = 1):
 
     # Process training data
     print("Loading training data...")
-    train_imgs, train_annots = create_dataset(training_data_list[0:-3], early_predict_frames)
+    train_imgs, train_annots = create_dataset(data_list[0:-3], early_predict_frames)
 
     train_data = Spots2DT( # Use 2DT class for 3D data with cropping
         images=train_imgs,
@@ -87,7 +87,7 @@ def main(training_data_dir: str, early_predict_frames: int = 1):
 
     # Process validation data
     print("Loading validation data...")
-    val_imgs, val_annots = create_dataset(training_data_list[-3:], early_predict_frames)
+    val_imgs, val_annots = create_dataset(data_list[-3:], early_predict_frames)
 
     val_data = Spots2DT(
         images=val_imgs,
@@ -159,6 +159,5 @@ def main(training_data_dir: str, early_predict_frames: int = 1):
 
 
 if __name__ == "__main__":
-    training_data_dir = "/groups/sgro/sgrolab/jennifer/predicty/training_data_server.json"
-    main(training_data_dir, early_predict_frames=1)
-
+    data_dir = "/groups/sgro/sgrolab/jennifer/predicty/training_data_server.json"
+    main(data_dir, early_predict_frames=1)
