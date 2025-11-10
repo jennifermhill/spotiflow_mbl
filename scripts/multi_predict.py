@@ -16,8 +16,8 @@ def extract_matched_pairs(stats, annotations, spots, shift_forward):
     '''Extract matched pairs of annotations and predicted spots based on matching statistics.
     Args:
         stats: Matching statistics object containing indices of matched pairs.
-        annotations: Array of annotation coordinates (t, z, x, y).
-        spots: Array of predicted spot coordinates (t, x, y).
+        annotations: Array of annotation coordinates (t, z, y, x).
+        spots: Array of predicted spot coordinates (t, y, x).
         shift_forward: Integer value to adjust time coordinate of annotations.
     Returns:
         Array of matched pairs with shape (N, 2, 4) where N is the number of matched pairs,
@@ -26,11 +26,12 @@ def extract_matched_pairs(stats, annotations, spots, shift_forward):
     '''
     pairs_ids = np.array(stats.matched_pairs)
     pairs = np.zeros((pairs_ids.shape[0], 2, 4), dtype=np.float32)
-    pairs[:, 0, :] = annotations[pairs_ids[:, 0]][:, [0, 2, 3, 1]] # reorder to t,x,y,z
-    pairs[:, 1, :-1] = spots[pairs_ids[:, 1]] # add t,x,y
+    pairs[:, 0, :] = annotations[pairs_ids[:, 0]][:, [0, 3, 2, 1]] # reorder to t,x,y,z
+    pairs[:, 1, :-1] = spots[pairs_ids[:, 1]][:, [0, 2, 1]] # add t,x,y
     pairs[:, 1, 3] = pairs[:, 0, 3] # add z from annotations
     pairs[:, 0, 0] += shift_forward # adjust time coordinate of annotations back
     return pairs
+
 
 def main(
         data_dir: str, 
