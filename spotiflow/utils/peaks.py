@@ -3,7 +3,7 @@ from typing import Literal, Tuple, Union
 
 import numpy as np
 import numpy as np
-from skimage.feature import corner_peaks, corner_subpix
+from skimage.feature import corner_peaks, corner_subpix, peak_local_max
 from skimage.feature.peak import (
     _get_excluded_border_width,
     _get_threshold,
@@ -406,6 +406,19 @@ def prob_to_points(
     assert prob.ndim in (2, 3), "Wrong dimension of prob"
     if mode == "skimage":
         corners = corner_peaks(
+            prob,
+            min_distance=min_distance,
+            threshold_abs=prob_thresh,
+            threshold_rel=0,
+            exclude_border=exclude_border,
+        )
+        if subpix:
+            print("using subpix")
+            corners_sub = corner_subpix(prob, corners, window_size=3)
+            ind = ~np.isnan(corners_sub[:, 0])
+            corners[ind] = corners_sub[ind].round().astype(int)
+    elif mode == "peak_local_max":
+        corners = peak_local_max(
             prob,
             min_distance=min_distance,
             threshold_abs=prob_thresh,
