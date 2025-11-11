@@ -39,6 +39,7 @@ def main(training_data_dir: str,
          good_datasets: list, 
          decuplicate: bool = False,
          shift_forward: bool = False,
+         point_priority: float = 0.5
          ):
     
     with open(training_data_dir, "r") as f:
@@ -81,7 +82,7 @@ def main(training_data_dir: str,
             all_annotations.append(dataset_annotations)
     print(f"Total number of annotations across all datasets: {annotations_tot}")
 
-    cropper = Crop3D(size=(32, 128, 128), point_priority=1.0)
+    cropper = Crop3D(size=(64, 256, 128), point_priority=point_priority)
 
     aug_pipeline = Pipeline()
     aug_pipeline.add(FlipRot90(probability=0.5))
@@ -142,7 +143,7 @@ def main(training_data_dir: str,
     print("Instantiating new model...")
     model = Spotiflow(SpotiflowModelConfig(
         backbone="unet",
-        in_channels=2,
+        in_channels=1,
         out_channels=1,
         sigma=17,
         is_3d=True,
@@ -155,6 +156,8 @@ def main(training_data_dir: str,
         batch_size=8,
         crop_size_depth=64,
         num_epochs=1000,
+        shift_forward=shift_forward,
+        point_priority=point_priority,
         )
 
     callbacks = [
@@ -204,4 +207,5 @@ if __name__ == "__main__":
          good_datasets, 
          decuplicate=True,
          shift_forward=True,
+         point_priority=0.6
          )

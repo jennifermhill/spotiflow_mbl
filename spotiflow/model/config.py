@@ -242,6 +242,9 @@ class SpotiflowTrainingConfig(SpotiflowConfig):
         early_stopping_patience: int = 0,
         crop_size_depth: int = 32,
         optimize_threshold: bool = False,
+        point_priority: float = 0.5,
+        shift_forward: int = 32,
+        early_detect_frames: int = 1,
         **kwargs,
     ):
         self.crop_size = crop_size
@@ -269,6 +272,9 @@ class SpotiflowTrainingConfig(SpotiflowConfig):
         self.early_stopping_patience = early_stopping_patience
         self.crop_size_depth = crop_size_depth # FIXME: should be done w crop_size argument
         self.optimize_threshold = optimize_threshold
+        self.point_priority = point_priority
+        self.shift_forward = shift_forward
+        self.early_detect_frames = early_detect_frames
         super().__init__()
 
     def is_valid(self):

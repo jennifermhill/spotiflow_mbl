@@ -53,14 +53,14 @@ def create_dataset(training_data: list, early_predict_frames: int):
     return all_imgs, all_annots
 
 
-def main(data_dir: str, early_predict_frames: int = 1):
+def main(data_dir: str, early_detect_frames: int = 1, point_priority: float = 1.0):
     
     with open(data_dir, "r") as f:
         data = json.load(f)
 
     data_list = list(data.items())
 
-    cropper = Crop3D(size=(64, 256, 256), point_priority=1.0) # Always train/predict on crops containing spots
+    cropper = Crop3D(size=(64, 256, 256), point_priority=point_priority) # Always train/predict on crops containing spots
 
     aug_pipeline = Pipeline()
     aug_pipeline.add(FlipRot90(probability=0.5))
@@ -70,7 +70,7 @@ def main(data_dir: str, early_predict_frames: int = 1):
 
     # Process training data
     print("Loading training data...")
-    train_imgs, train_annots = create_dataset(data_list[0:-3], early_predict_frames)
+    train_imgs, train_annots = create_dataset(data_list[0:-3], early_detect_frames)
 
     train_data = Spots2DT( # Use 2DT class for 3D data with cropping
         images=train_imgs,
@@ -87,7 +87,7 @@ def main(data_dir: str, early_predict_frames: int = 1):
 
     # Process validation data
     print("Loading validation data...")
-    val_imgs, val_annots = create_dataset(data_list[-3:], early_predict_frames)
+    val_imgs, val_annots = create_dataset(data_list[-3:], early_detect_frames)
 
     val_data = Spots2DT(
         images=val_imgs,
@@ -135,6 +135,8 @@ def main(data_dir: str, early_predict_frames: int = 1):
         batch_size=8,
         crop_size_depth=64,
         num_epochs=1000,
+        point_priority=point_priority,
+        early_detect_frames=early_detect_frames,
         )
 
     callbacks = [
@@ -160,4 +162,4 @@ def main(data_dir: str, early_predict_frames: int = 1):
 
 if __name__ == "__main__":
     data_dir = "/groups/sgro/sgrolab/jennifer/predicty/training_data_server.json"
-    main(data_dir, early_predict_frames=1)
+    main(data_dir, early_detect_frames=1, point_priority=1.0)
