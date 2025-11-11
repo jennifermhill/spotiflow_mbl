@@ -32,15 +32,15 @@ def crop_manual(image: da.Array, annotation: np.ndarray, crop_size: tuple):
     z, y, x = map(int, annotation)
 
     # center the crop on the annotation then clamp to image bounds so crop size is exact
-    z_start = int(z - cz // 2)
+    z_start = 0
     y_start = int(y - cy // 2)
     x_start = int(x - cx // 2)
 
-    z_start = max(0, min(z_start, img_z - cz))
+    z_start = 0 # crop full z dimension
     y_start = max(0, min(y_start, img_y - cy))
     x_start = max(0, min(x_start, img_x - cx))
 
-    z_end = z_start + cz
+    z_end = z_start + img_z
     y_end = y_start + cy
     x_end = x_start + cx
 
@@ -113,8 +113,9 @@ def main(data_dir: str, model_time: str, early_predict_frames: int = 1, prob_thr
             spots, details = model.predict(
                 img=cropped_img.astype(np.float32).compute(),
                 subpix=True,
-                min_distance=75,
+                min_distance=15,
                 prob_thresh=prob_thresh,
+                peak_mode="fast",
                 #n_tiles=n_tiles, # change if you run out of memory
                 device="cuda",
             )
@@ -124,7 +125,7 @@ def main(data_dir: str, model_time: str, early_predict_frames: int = 1, prob_thr
             stats = points_matching(
                         p1=np.array([cropped_annot]),
                         p2=np.array(spots),
-                        cutoff_distance=20,
+                        cutoff_distance=50,
                         eps=1e-8,
                     )
             print(f"TP: {stats.tp}, FP: {stats.fp}, FN: {stats.fn}")
@@ -135,11 +136,11 @@ def main(data_dir: str, model_time: str, early_predict_frames: int = 1, prob_thr
             viewer = napari.Viewer()
             # viewer.add_image(imgs[-1])
             #viewer.add_points(all_annotations[pred_dataset], size=20, name="pts", symbol="disc", border_color="red", face_color="red")
-            viewer.add_image(cropped_img, name="img")
+            viewer.add_image(cropped_img, name="img", contrast_limits=[0, 6000])
             viewer.add_points(spots, size=20, name="pts", symbol="disc", border_color="blue", face_color="blue")
             viewer.add_points(cropped_annot, size=20, name="annotations", symbol="disc", border_color="red", face_color="red")
             viewer.add_image(details.heatmap, name="pred_heatmap", colormap="magma", blending="additive", opacity=0.6)
-            viewer.add_image((details.flow+1)*0.5, name="flow")
+            # viewer.add_image((details.flow+1)*0.5, name="flow")
             napari.run()
 
             if len(stats.matched_pairs) > 0:
@@ -180,5 +181,5 @@ if __name__ == "__main__":
     main(data_dir, 
          model_time = "20251107_1721",
          early_predict_frames=1,
-         prob_thresh = 0.2,
+         prob_thresh = 0.5,
          )
