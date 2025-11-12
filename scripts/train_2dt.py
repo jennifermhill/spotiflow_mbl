@@ -38,7 +38,7 @@ def decuplicate_annotations(annotations: list, n_duplicates: int = 10) -> list:
 def main(training_data_dir: str, 
          good_datasets: list, 
          decuplicate: bool = False,
-         shift_forward: bool = False,
+         shift_forward: int = 32,
          point_priority: float = 0.5
          ):
     
@@ -67,9 +67,7 @@ def main(training_data_dir: str,
 
             # Process annotations
             dataset_annotations = training_data[zarr_dataset]
-
-            if shift_forward:
-                dataset_annotations = shift_annotations(dataset_annotations, shift_size=32)
+            dataset_annotations = shift_annotations(dataset_annotations, shift_size=shift_forward)
 
             if decuplicate:
                 dataset_annotations = decuplicate_annotations(dataset_annotations, n_duplicates=10)
@@ -206,6 +204,6 @@ if __name__ == "__main__":
     main(training_data_dir, 
          good_datasets, 
          decuplicate=True,
-         shift_forward=True,
-         point_priority=0.6
+         shift_forward=48,
+         point_priority=1.0
          )
