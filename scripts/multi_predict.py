@@ -157,7 +157,7 @@ def main(
                 if len(stats.matched_pairs) > 0:
                     dist_error.extend(stats.dist.tolist()) # calculated as error in t, x, y where t has been shifted forward
                     matched_pairs = extract_matched_pairs(stats, ds_annotations, new_spots, shift_forward)
-                    early_detect_frames = (matched_pairs[:, 0, 0] - matched_pairs[:, 1, 0]).tolist()
+                    early_detect_frames = (matched_pairs[:, 0, 0] - w + window_size).tolist()
                     early_detect_frames_list.extend(early_detect_frames)
                     for pair in matched_pairs:
                         if pair[0, 3] > 60:  # arbitrary threshold for high surface aggregation
@@ -207,8 +207,8 @@ def main(
 
 if __name__ == "__main__":
     data_dir = "/groups/sgro/sgrolab/jennifer/predicty/"
-    model_time = "20250903_2252"
-    shift_forward = 48
+    model_time = "20251111_1157"
+    shift_forward = 32
     window_size = 50
     prob_thresh = 0.5
 
