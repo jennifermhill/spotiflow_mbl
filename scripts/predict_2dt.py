@@ -21,8 +21,7 @@ def main(training_data_dir: str, model_time: str, pred_datasets: list[int], shif
     annotations = []
     for i, zarr_dataset in enumerate(training_data):
         print(f"Processing dataset {i}...")
-        zarr_path = os.path.join(zarr_dataset, "../analysis_mbl/max_projections/maxz")
-        # zarr_path = os.path.join(zarr_dataset, "analysis/max_projections/maxz")
+        zarr_path = os.path.join(zarr_dataset, "../analysis/max_projections/maxz")
 
         # Process zarr
         try:
@@ -30,8 +29,7 @@ def main(training_data_dir: str, model_time: str, pred_datasets: list[int], shif
         except Exception as e:
             print(f"Skipping dataset {i}: {e}")
             continue
-        # img = img[:,0,0,:,:]
-        img = img[:,[0,3],:,:].transpose(0,2,3,1)
+        img = img[:,0,0,:,:]
         
         imgs.append(img)
 
@@ -39,8 +37,6 @@ def main(training_data_dir: str, model_time: str, pred_datasets: list[int], shif
         annotation = training_data[zarr_dataset]
         annotation = np.array(annotation) # tzyx
         annotation = annotation[:,[0,2,3]]
-        # np.delete(annotation, 1, axis=1)  # remove z coordinate
-        # annotation = annotation[:,[0,2,1]]  # txy
 
         annotations.append(annotation)
 
@@ -55,7 +51,7 @@ def main(training_data_dir: str, model_time: str, pred_datasets: list[int], shif
     fns = 0
     recalls = []
     # for ds, cutoff, prob_thresh in zip(pred_datasets, [50, 10, 90], [0.35, 0.3, 0.5]):
-    for ds, cutoff, prob_thresh in zip(pred_datasets, [50], [0.35]):
+    for ds, cutoff, prob_thresh in zip(pred_datasets, [90], [0.53]):
         print("Loading validation image...")
         val_imgs = imgs[ds].astype(np.float32).compute()
         val_imgs_crop = val_imgs[:cutoff]
@@ -77,13 +73,11 @@ def main(training_data_dir: str, model_time: str, pred_datasets: list[int], shif
         )
 
         viewer = napari.Viewer()
-        val_imgs = val_imgs.transpose(3, 0, 1, 2)  # to CTYX for napari
-        # viewer.add_image(imgs[-1])
+
         viewer.add_points(annotations[ds], size=20, name="pts", symbol="disc", border_color="red", face_color="red")
-        viewer.add_image(val_imgs[0], name="img_cells")
-        viewer.add_image(val_imgs[1], name="img_zramp")
+        viewer.add_image(val_imgs, name="img")
         viewer.add_points(spots, size=20, name="pts", symbol="disc", border_color="blue", face_color="blue")
-        viewer.add_image(details.heatmap, name="heatmap")
+        viewer.add_image(details.heatmap, name="heatmap", colormap="magma", opacity=0.6)
         viewer.add_image((details.flow+1)*0.5, name="flow")
         napari.run()
 
@@ -121,14 +115,14 @@ def main(training_data_dir: str, model_time: str, pred_datasets: list[int], shif
             # save df to csv
             df.to_csv(f"/groups/sgro/sgrolab/jennifer/spotiflow_mbl/scripts/outputs/spotiflow-{model_time}/ds{ds}_stats.csv", index=False)
 
-            #save prediction images as tiff
-            # pad_width = ((0, val_imgs.shape[0] - details.heatmap.shape[0]), (0, 0), (0, 0))
-            # heatmap_padded = np.pad(details.heatmap, pad_width, mode='constant')
-            # img_concat = np.concatenate((val_imgs, heatmap_padded), axis=0)
-            # tiff.imwrite(f"/groups/sgro/sgrolab/jennifer/spotiflow_mbl/scripts/outputs/spotiflow-{model_time}/ds{ds}_img.tiff", 
-            #               img_concat,
-            #               metadata={'axes': 'ctyx'}
-            #               )
+            # save prediction images as tiff
+            pad_width = ((0, val_imgs.shape[0] - details.heatmap.shape[0]), (0, 0), (0, 0))
+            heatmap_padded = np.pad(details.heatmap, pad_width, mode='constant')
+            img_concat = np.concatenate((val_imgs, heatmap_padded), axis=0)
+            tiff.imwrite(f"/groups/sgro/sgrolab/jennifer/spotiflow_mbl/scripts/outputs/spotiflow-{model_time}/ds{ds}_img.tiff", 
+                          img_concat,
+                          metadata={'axes': 'ctyx'}
+                          )
 
         tps += stats.tp
         fps += stats.fp
@@ -141,6 +135,6 @@ def main(training_data_dir: str, model_time: str, pred_datasets: list[int], shif
 if __name__ == "__main__":
     training_data_dir = "/groups/sgro/sgrolab/jennifer/predicty/training_data_server.json"
     main(training_data_dir,
-         model_time = "20250915_1000", 
-         pred_datasets=[14,],
+         model_time = "20251110_1639", 
+         pred_datasets=[18],
          shift_forward=32)

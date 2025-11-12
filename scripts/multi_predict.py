@@ -79,12 +79,10 @@ def main(
         # Process annotations
         ds_annotations = zarr_dataset[1]
         ds_annotations = np.array(ds_annotations) # tzyx
-        # ds_annotations = ds_annotations[:,[0,2,3]] # txy
         # subtract shift_forward if training annotations were shifted
         ds_annotations[:,0] -= shift_forward
 
         # Load full dataset
-        # zarr_path = os.path.join(zarr_dataset, "analysis_mbl/max_projections/maxz")
         zarr_path = os.path.join(zarr_dataset_path, "../analysis/max_projections/maxz")
 
         # Process zarr
@@ -94,7 +92,6 @@ def main(
             print(f"Skipping dataset {i}: {e}")
             continue
         img = img[:,0,0,:,:]
-        # img = img[:,[0,3],:,:].transpose(0,2,3,1) 
 
         # TODO: get size in Z from metadata
 

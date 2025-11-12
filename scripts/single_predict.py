@@ -69,7 +69,6 @@ def main(
     )
 
     viewer = napari.Viewer()
-    # viewer.add_image(imgs[-1])
     #viewer.add_points(all_annotations[pred_dataset], size=20, name="pts", symbol="disc", border_color="red", face_color="red")
     viewer.add_image(item["img"], name="img")
     viewer.add_image(heatmap, name="heatmap")

@@ -128,7 +128,6 @@ def main(training_data_dir: str,
     # print(f"Image shape: {img.shape}, pts shape: {pts.shape}, heatmap shape: {heatmap.shape}, flow shape: {flow.shape}")
 
     # viewer = napari.Viewer()
-    # # viewer.add_image(imgs[-1])
     # #viewer.add_points(annotations[17], size=10, name="pts", symbol="disc", border_color="red", face_color="red")
     # viewer.add_image(img, name="img")
     # # viewer.add_points(spots, size=1, name="pts", symbol="disc", border_color="magenta", face_color="magenta")
@@ -184,8 +183,6 @@ def main(training_data_dir: str,
     # print(f"Spots shape: {pred.shape}")
 
     # viewer = napari.Viewer()
-    # # # viewer.add_image(imgs[-1])
-    # # # viewer.add_points(annotations[-1], size=10, name="pts", symbol="disc", border_color="red", face_color="red")
     # # viewer.add_image(val_data[0]["img"], name="img")
     # # viewer.add_points(pred[0], size=1, name="pts", symbol="disc", border_color="red", face_color="red")
     # # viewer.add_image(pred[1]["heatmap_lv0"], name="heatmap")
