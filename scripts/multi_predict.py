@@ -38,7 +38,9 @@ def main(
         model_time: str, 
         shift_forward: int = 0, 
         window_size: int = 32,
-        prob_thresh: float = 0.3
+        prob_thresh: float = 0.3,
+        predict_z: bool = False,
+        z_model_time: str = None,
         ):
     '''Predict on all annotated sites in data_dir using model specified by model_time.
     
@@ -49,6 +51,8 @@ def main(
         shift_forward (int): Number of frames training annotations were shifted forward during training (to be matched when predicting). Defaults to 0.
         window_size (int): Number of timepoints to use for each prediction window. Defaults to 32.
         prob_thresh (float): Probability threshold for spot detection. Defaults to 0.3.
+        predict_z (bool): Whether to use 3D model to predict z positions of detected spots. Defaults to False (2D+t prediction only).
+        z_model_time (str): Timestamp of the 3D model to use for predicting z positions if predict_z is True. Defaults to None.
     '''
     print(f"Predicting with model {model_time}")
 
@@ -176,6 +180,9 @@ def main(
                 tps += stats.tp
                 fps += stats.fp
                 all_spots.extend(spot for spot in new_spots)
+            
+            if predict_z:
+                print("predict_z not yet implemented in multi_predict.py")
 
         total_annotations = ds_annotations.shape[0]
         unique_matched_annotations = len(all_matched_annotations)
@@ -208,5 +215,7 @@ if __name__ == "__main__":
     shift_forward = 32
     window_size = 50
     prob_thresh = 0.5
+    predict_z = False
+    z_model_time = "20251107_1721"  # model to use for predicting z positions if predict_z is True
 
-    main(data_dir, model_time, shift_forward, window_size, prob_thresh)
+    main(data_dir, model_time, shift_forward, window_size, prob_thresh, predict_z, z_model_time)
