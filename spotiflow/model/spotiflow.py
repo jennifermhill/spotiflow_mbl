@@ -1117,8 +1117,13 @@ class Spotiflow(nn.Module):
         probs = np.asarray(probs)
         # if scale is not None and scale != 1:
         #     points = np.round((points.astype(float) / scale)).astype(int)
-        probs = filter_shape(probs, out_shape, idxr_array=points)
-        pts = filter_shape(points, out_shape, idxr_array=points)
+        if exclude_border:
+            probs = filter_shape(probs, out_shape, idxr_array=points)
+            pts = filter_shape(points, out_shape, idxr_array=points) # filter out points in the padded area (will throw out correct points predicted near edges!)
+        else: # shift out of bounds points to edge of out_shape
+            pts = points.copy()
+            for dim in range(actual_n_dims):
+                pts[:, dim] = np.clip(pts[:, dim], 0, out_shape[dim]-1)
 
         if self.config.is_3d and any(s > 1 for s in self.config.grid):
             pts *= np.asarray(self.config.grid)
