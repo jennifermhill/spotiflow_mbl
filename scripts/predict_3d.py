@@ -6,6 +6,7 @@ import torch
 import os
 import pandas as pd
 
+from skimage.feature import peak_local_max
 from spotiflow.model import Spotiflow
 from spotiflow.augmentations.transforms3d import Crop3D
 from spotiflow.data.spots2dt import Spots2DT
@@ -100,6 +101,7 @@ def main(data_dir: str, model_time: str, early_predict_frames: int = 1, prob_thr
         tps = 0
         fps = 0
         fns = 0
+        heatmap_tps = 0
 
         for full_annot in ds_annotations:
             tp = full_annot[0] - early_predict_frames
@@ -120,7 +122,7 @@ def main(data_dir: str, model_time: str, early_predict_frames: int = 1, prob_thr
                 device="cuda",
             )
 
-            print(f"p1: {np.array(spots)}, p2: {np.array([cropped_annot])}")
+            print(f"p1: {np.array([cropped_annot])}, p2: {np.array(spots)}")
             # Evaluate
             stats = points_matching(
                         p1=np.array([cropped_annot]),
@@ -133,32 +135,67 @@ def main(data_dir: str, model_time: str, early_predict_frames: int = 1, prob_thr
             fps += stats.fp
             fns += stats.fn
 
-            viewer = napari.Viewer()
-            # viewer.add_image(imgs[-1])
-            #viewer.add_points(all_annotations[pred_dataset], size=20, name="pts", symbol="disc", border_color="red", face_color="red")
-            viewer.add_image(cropped_img, name="img", contrast_limits=[0, 6000])
-            viewer.add_points(spots, size=20, name="pts", symbol="disc", border_color="blue", face_color="blue")
-            viewer.add_points(cropped_annot, size=20, name="annotations", symbol="disc", border_color="red", face_color="red")
-            viewer.add_image(details.heatmap, name="pred_heatmap", colormap="magma", blending="additive", opacity=0.6)
-            # viewer.add_image((details.flow+1)*0.5, name="flow")
-            napari.run()
-
             if len(stats.matched_pairs) > 0:
                 assert len(stats.matched_pairs) == 1, "Expected exactly one matched pair"
                 spot = spots[stats.matched_pairs[0][0]]
                 dist_error_list.extend(stats.dist.tolist()) # calculated as error in t, x, y where t has been shifted forward
                 z_dist_error = abs(cropped_annot[0] - spot[0])
                 z_dist_error_list.append(z_dist_error)
-                cropped_annot = [int(tp), int(cropped_annot[0]), int(cropped_annot[1]), int(cropped_annot[2])]  # add time coordinate 
+                #cropped_annot = [int(tp), int(cropped_annot[0]), int(cropped_annot[1]), int(cropped_annot[2])]  # add time coordinate 
                 matched_pairs_data.append({
                     "dataset": zarr_dataset_path,
                     "matched_pair": [full_annot, cropped_annot, spot.tolist()],
                     "distance_error": stats.dist.tolist(),
                     "z_distance_error": float(z_dist_error),
                 })
+
+            # Predict spots separately using heatmap
+            print("Analyzing heatmap peaks...")
+            heatmap = details.heatmap
+            heatmap_spots = peak_local_max(
+                heatmap,
+                min_distance=15,
+                num_peaks=3,
+                exclude_border=(0, 12, 12),
+            )
+
+            # Sort by intensity (brightest first)
+            if len(heatmap_spots) > 0:
+                intensities = heatmap[tuple(heatmap_spots.T)]
+                sorted_indices = np.argsort(intensities)[::-1]  # Descending order
+                heatmap_spots = heatmap_spots[sorted_indices]
+                print(f"Top peak intensities: {intensities[sorted_indices]}")
+
+                print(f"p1: {np.array([cropped_annot])}, p2: {np.array(heatmap_spots)}")
+                heatmap_stats = points_matching(
+                    p1=np.array([cropped_annot]),
+                    p2=np.array(heatmap_spots),
+                    cutoff_distance=50,
+                    eps=1e-8,
+                )
+                print(f"Heatmap TP: {heatmap_stats.tp}, FP: {heatmap_stats.fp}, FN: {heatmap_stats.fn}")
+
+                if len(heatmap_stats.matched_pairs) > 0:
+                    assert len(heatmap_stats.matched_pairs) == 1, "Expected exactly one matched pair from heatmap"
+                    matched_spot_id = heatmap_stats.matched_pairs[0][1]
+                    spot = heatmap_spots[matched_spot_id]
+                    if matched_spot_id == 0:
+                        heatmap_tps += 1
+                    print(f"Matched heatmap spot ID: {matched_spot_id}. Spot: {spot}")
+
+                viewer = napari.Viewer()
+                # viewer.add_image(imgs[-1])
+                #viewer.add_points(all_annotations[pred_dataset], size=20, name="pts", symbol="disc", border_color="red", face_color="red")
+                viewer.add_image(cropped_img, name="img", contrast_limits=[0, 6000])
+                viewer.add_points(spots, size=20, name="pred_spots", symbol="disc", border_color="blue", face_color="blue")
+                viewer.add_points(heatmap_spots, size=20, name="heatmap_spots", symbol="disc", border_color="green", face_color="green")
+                viewer.add_points(cropped_annot, size=20, name="annotations", symbol="disc", border_color="red", face_color="red")
+                viewer.add_image(details.heatmap, name="pred_heatmap", colormap="magma", blending="additive", opacity=0.6)
+                # viewer.add_image((details.flow+1)*0.5, name="flow")
+                napari.run()
         
-        print(f"Dataset {i} - TP: {tps}, FP: {fps}, FN: {fns}")
-        metrics = pd.concat([metrics, pd.DataFrame({"dataset": [zarr_dataset_path], "TP": [tps], "FP": [fps], "FN": [fns]})], ignore_index=True)
+        print(f"Dataset {i} - TP: {tps}, FP: {fps}, FN: {fns}, Heatmap TP: {heatmap_tps}, Heatmap FN: {len(ds_annotations) - heatmap_tps}")
+        metrics = pd.concat([metrics, pd.DataFrame({"dataset": [zarr_dataset_path], "TP": [tps], "FP": [fps], "FN": [fns], "Heatmap TP": [heatmap_tps]})], ignore_index=True)
 
     # Save metrics to CSV
     avg_dist_error = np.mean(dist_error_list) if len(dist_error_list) > 0 else 0
@@ -181,5 +218,5 @@ if __name__ == "__main__":
     main(data_dir, 
          model_time = "20251107_1721",
          early_predict_frames=1,
-         prob_thresh = 0.5,
+         prob_thresh = 0.3,
          )

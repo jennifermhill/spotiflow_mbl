@@ -7,6 +7,7 @@ import torch
 import pandas as pd
 import tifffile as tiff
 
+from skimage.feature import peak_local_max
 from spotiflow.model import Spotiflow
 from spotiflow.utils.matching import points_matching
 
@@ -72,15 +73,6 @@ def main(training_data_dir: str, model_time: str, pred_datasets: list[int], shif
             device="cuda",
         )
 
-        viewer = napari.Viewer()
-
-        viewer.add_points(annotations[ds], size=20, name="pts", symbol="disc", border_color="red", face_color="red")
-        viewer.add_image(val_imgs, name="img")
-        viewer.add_points(spots, size=20, name="pts", symbol="disc", border_color="blue", face_color="blue")
-        viewer.add_image(details.heatmap, name="heatmap", colormap="magma", opacity=0.6)
-        viewer.add_image((details.flow+1)*0.5, name="flow")
-        napari.run()
-
         prediction_annotations = annotations[ds]
         # subtract shift forward from time in prediction annotations
         prediction_annotations[:,0] -= shift_forward
@@ -112,17 +104,54 @@ def main(training_data_dir: str, model_time: str, pred_datasets: list[int], shif
                 })
                 df = pd.concat([df, df_entry], ignore_index=True)
             print(df)
-            # save df to csv
-            df.to_csv(f"/groups/sgro/sgrolab/jennifer/spotiflow_mbl/scripts/outputs/spotiflow-{model_time}/ds{ds}_stats.csv", index=False)
 
-            # save prediction images as tiff
-            pad_width = ((0, val_imgs.shape[0] - details.heatmap.shape[0]), (0, 0), (0, 0))
-            heatmap_padded = np.pad(details.heatmap, pad_width, mode='constant')
-            img_concat = np.concatenate((val_imgs, heatmap_padded), axis=0)
-            tiff.imwrite(f"/groups/sgro/sgrolab/jennifer/spotiflow_mbl/scripts/outputs/spotiflow-{model_time}/ds{ds}_img.tiff", 
-                          img_concat,
-                          metadata={'axes': 'ctyx'}
-                          )
+        # Predict spots separately using heatmap
+        print("Analyzing heatmap peaks...")
+        heatmap = details.heatmap
+        heatmap_spots = peak_local_max(
+            heatmap,
+            min_distance=75,
+            num_peaks=8,
+            exclude_border=False,
+        )
+
+        # Sort by intensity (brightest first)
+        if len(heatmap_spots) > 0:
+            intensities = heatmap[tuple(heatmap_spots.T)]
+            sorted_indices = np.argsort(intensities)[::-1]  # Descending order
+            heatmap_spots = heatmap_spots[sorted_indices]
+            print(f"Top peak intensities: {intensities[sorted_indices]}")
+
+            print(f"p1: {np.array(prediction_annotations)}, p2: {np.array(heatmap_spots)}")
+            heatmap_stats = points_matching(
+                p1=np.array(prediction_annotations),
+                p2=np.array(heatmap_spots),
+                cutoff_distance=50,
+                eps=1e-8,
+            )
+            print(f"Heatmap TP: {heatmap_stats.tp}, FP: {heatmap_stats.fp}, FN: {heatmap_stats.fn}")
+
+            viewer = napari.Viewer()
+
+            viewer.add_points(prediction_annotations, size=20, name="pts", symbol="disc", border_color="red", face_color="red")
+            viewer.add_image(val_imgs, name="img")
+            viewer.add_points(spots, size=20, name="pts", symbol="disc", border_color="blue", face_color="blue")
+            viewer.add_points(heatmap_spots, size=20, name="heatmap_spots", symbol="disc", border_color="green", face_color="green")
+            viewer.add_image(details.heatmap, name="heatmap", colormap="magma", opacity=0.6)
+            #viewer.add_image((details.flow+1)*0.5, name="flow")
+            napari.run()
+
+            # save df to csv
+            # df.to_csv(f"/groups/sgro/sgrolab/jennifer/spotiflow_mbl/scripts/outputs/spotiflow-{model_time}/ds{ds}_stats.csv", index=False)
+
+            # # save prediction images as tiff
+            # pad_width = ((0, val_imgs.shape[0] - details.heatmap.shape[0]), (0, 0), (0, 0))
+            # heatmap_padded = np.pad(details.heatmap, pad_width, mode='constant')
+            # img_concat = np.concatenate((val_imgs, heatmap_padded), axis=0)
+            # tiff.imwrite(f"/groups/sgro/sgrolab/jennifer/spotiflow_mbl/scripts/outputs/spotiflow-{model_time}/ds{ds}_img.tiff", 
+            #               img_concat,
+            #               metadata={'axes': 'ctyx'}
+            #               )
 
         tps += stats.tp
         fps += stats.fp
