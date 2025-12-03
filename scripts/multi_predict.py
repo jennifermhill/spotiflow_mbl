@@ -46,7 +46,7 @@ def main(
     annotations_path = os.path.join(data_dir, "training_data_server.json")
     with open(annotations_path, "r") as f:
         annotations = json.load(f)
-    annotations = list(annotations.items())[-3:]  # last 3 are validation datasets #real time annots
+    annotations = list(annotations.items())[-1:]  # last 3 are validation datasets #real time annots
 
     # Load pre-trained model
     print("Loading 2dt model...")
@@ -128,7 +128,7 @@ def main(
                     if len(all_spots) > 0:
                         # Match with spots from previous window
                         prev_spot_data_list = spot_stats_list[-1]
-                        prev_spots = prev_spot_data_list[["spot_t", "spot_y", "spot_x"]].to_numpy()
+                        prev_spots = prev_spot_data_list[["spot_id", "spot_t", "spot_y", "spot_x"]].to_numpy()
 
                         curr_spot_idx = match_previous_window(spot, prev_spots)
                         if curr_spot_idx is None:
@@ -203,17 +203,17 @@ def main(
                 tps += stats.tp
                 fps += stats.fp
 
-            # viewer = napari.Viewer()
 
             # Duplicate spots across timepoints for visualization
             duplicate_spots = duplicate_points(spots, nb_timepoints=dataset.shape[0])
 
-            # viewer.add_image(dataset, name="img")
-            # viewer.add_image(details.heatmap, name="heatmap", colormap="magma", opacity=0.6, translate=(w,0,0))
-            # viewer.add_points(list(duplicate_gt_annotations), size=20, name="annots", symbol="disc", border_color="red", face_color="red")
-            # viewer.add_points(list(duplicate_spots), size=20, name="spots", symbol="disc", border_color="blue", face_color="blue")
-            # # viewer.add_image((details.flow+1)*0.5, name="flow")
-            # napari.run()
+            viewer = napari.Viewer()
+            viewer.add_image(dataset, name="img")
+            viewer.add_image(details.heatmap, name="heatmap", colormap="magma", opacity=0.6, translate=(w,0,0))
+            viewer.add_points(list(duplicate_gt_annotations), size=20, name="annots", symbol="disc", border_color="red", face_color="red")
+            viewer.add_points(list(duplicate_spots), size=20, name="spots", symbol="disc", border_color="blue", face_color="blue")
+            # viewer.add_image((details.flow+1)*0.5, name="flow")
+            napari.run()
 
         total_annotations = ds_annotations.shape[0]
         unique_matched_annotations = len(all_matched_annotations)
@@ -252,9 +252,9 @@ def main(
 
 if __name__ == "__main__":
     data_dir = "/groups/sgro/sgrolab/jennifer/predicty/"
-    model_time = "20251111_1157"
+    model_time = "20250903_1715"
     shift_forward = 32
-    window_size = 64
+    window_size = 48
     prob_thresh = 0.1
     predict_z = True
     z_model_time = "20251107_1721"  # model to use for predicting z positions if predict_z is True
