@@ -348,6 +348,33 @@ def normalize(
     mi, ma = np.percentile(y[mask], (pmin, pmax))
     return normalize_mi_ma(x, mi, ma, clip=clip)
 
+def dask_normalize_mi_ma(
+    x: da.Array,
+    mi: float,
+    ma: float,
+    clip: bool=False,
+    eps: float=1e-20,
+    dtype: np.dtype=np.float32
+) -> da.Array:
+    """
+    Normalize a Dask array using min-max normalization with the given values.
+    Adapted from csbdeep.utils.normalize_mi_ma to work with Dask array (removed numexpr).
+    """
+    if not isinstance(x, da.Array):
+        raise TypeError("Input x should be a Dask array. Please use the `normalize`/`normalize_mi_ma` function for NumPy arrays.")
+    if dtype is not None:
+        x = x.astype(dtype)
+        mi = dtype(mi) if np.isscalar(mi) else mi.astype(dtype, copy=False)
+        ma = dtype(ma) if np.isscalar(ma) else ma.astype(dtype, copy=False)
+        eps = dtype(eps)
+
+    x = (x - mi) / (ma - mi + eps)
+
+    if clip:
+        x = x.clip(0, 1)
+    return x
+
+
 
 def normalize_dask(
     x: da.Array,
@@ -355,6 +382,8 @@ def normalize_dask(
     pmax: float = 99.8,
     eps: float = 1e-20,
     max_samples: int = 1e5,
+    clip: bool = False,
+    dtype: Optional[np.dtype] = np.float32,
 ) -> da.Array:
     """
     Lazily normalizes (percentile-based) an n-dimensional Dask array with the additional option to ignore a value. The normalization is done as follows:
@@ -382,7 +411,7 @@ def normalize_dask(
         mi, ma = da.percentile(
             x.ravel()[::n_skip], (pmin, pmax), internal_method="tdigest"
         ).compute()
-    return (x - mi) / (ma - mi + eps)
+    return dask_normalize_mi_ma(x, mi, ma, clip=clip, eps=eps, dtype=dtype)
 
 
 def initialize_wandb(
@@ -455,7 +484,8 @@ def remove_device_id_from_device_str(device_str: str) -> str:
 def get_data(
     path: Union[Path, str],
     normalize: bool = True,
-    subfolder: tuple[str] = ("train", "val", "test"),
+    include_test: bool = False,
+    subfolder: Optional[tuple[str]] = None, # ("train", "val", "test"),
     is_3d: bool = False,
     **kwargs,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
@@ -464,7 +494,8 @@ def get_data(
     Args:
         path (Union[Path, str]): Path to the data.
         normalize (bool, optional): Whether to normalize the data. Defaults to True.
-        subfolder (tuple[str], optional): Subfolders to be used. Defaults to ('train','val', 'test').
+        include_test: (bool, optional): Whether to include the test set. Defaults to False.
+        subfolder (tuple[str], optional): Subfolders to be used for non-standard datasets. Defaults to None.
     Returns:
         Tuple[np.ndarray]: A tuple of arrays with length 2*len(subfolder) corresponding to the images, centers per subfolder
     """
@@ -473,6 +504,11 @@ def get_data(
     SpotsDatasetClass = SpotsDataset if not is_3d else Spots3DDataset
 
     path = Path(path)
+
+    if subfolder is None and not include_test:
+        subfolder = ("train", "val")
+    elif subfolder is None and include_test:
+        subfolder = ("train", "val", "test")
 
     if not path.exists():
         raise FileNotFoundError(f"Given data path {path} does not exist!")

@@ -38,7 +38,7 @@ def get_data(
     spots_files = sorted(data_dir.glob("*.csv"))
 
     _read_spots_fun = read_coords_csv3d if is_3d else read_coords_csv
-    images = tuple(imread_wrapped(str(f), channels) for f in img_files)
+    images = tuple(imread_wrapped(f, channels) for f in img_files)
     spots = tuple(_read_spots_fun(str(f)).astype(np.float32) for f in spots_files)
     return images, spots
 
@@ -315,6 +315,7 @@ def main():
                 inference_mode=False,
                 verbose=True,
             )
+        model.config.sigma = args.sigma
 
     log.info("Launching training...")
     model.fit(
