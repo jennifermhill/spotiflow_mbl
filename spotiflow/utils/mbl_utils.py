@@ -49,7 +49,7 @@ def crop_manual(image: da.Array, annotation: np.ndarray, crop_size: tuple):
 def match_previous_window(current_spot, previous_spots):
     # Match current spot to previous spots
     prev_matches = points_matching(
-        p1=previous_spots,
+        p1=previous_spots[:, 1:],  # t,y,x
         p2=np.array([current_spot]),  # t,y,x
         cutoff_distance=75,
         eps=1e-8,
@@ -58,7 +58,7 @@ def match_previous_window(current_spot, previous_spots):
         assert len(prev_matches.matched_pairs) == 1, "Expected exactly one matched pair"
 
         prev_spot_idx = prev_matches.matched_pairs[0][0]
-        curr_spot_idx = prev_spot_idx
+        curr_spot_idx = previous_spots[prev_spot_idx][0]  # spot_id of matched previous spot
 
     else:
         curr_spot_idx = None
@@ -96,7 +96,7 @@ def predict_heatmap(img, model, prob_thresh, num_peaks=8):
         prob_thresh=prob_thresh,
         #n_tiles=n_tiles, # change if you run out of memory
         device="cuda",
-        verbose=False,
+        verbose=True,
     )
 
     print("Analyzing heatmap peaks...")
